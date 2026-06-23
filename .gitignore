@@ -1,0 +1,17 @@
+.gcc-flags.json
+
+*.o
+*.elf
+*.bin
+*.hex
+
+# PlatformIO and ESP32 builds
+.pio/
+.pioenvs/
+.piolibdeps/
+.clang_complete
+build/
+sdkconfig
+
+# VSCode
+.vscode/

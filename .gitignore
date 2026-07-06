@@ -15,3 +15,6 @@ sdkconfig
 
 # VSCode
 .vscode/
+
+# Python
+python/__pycache__/

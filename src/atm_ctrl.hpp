@@ -141,12 +141,14 @@ class ATM {
             break;
 
             case DEPOSIT:
-                _current_read = coin_counter_in.read();
-
-                if (!_current_read && _last_read) {
-                    _count++;
+                if(!coin_counter_in.read()){
+                    if (_last_read) {
+                        _count++;
+                        _last_read = true;
+                    }
+                } else {
+                    _last_read = false;
                 }
-                _last_read = _current_read;
 
                 if(_count == coin_num || ((esp_timer_get_time() / 1000) - _state_timer) >= 20000){
                     ESP_LOGI(TAG_I, "Deposit complete");
@@ -176,10 +178,14 @@ class ATM {
 
                 _current_read = coin_counter_out.read();
 
-                if (!_current_read && _last_read) {
-                    _count++;
+                if(!coin_counter_out.read()){
+                    if (_last_read) {
+                        _count++;
+                        _last_read = true;
+                    }
+                } else {
+                    _last_read = false;
                 }
-                _last_read = _current_read;
 
                 if (_count == coin_num || (current_time - _state_timer) >= 20000) {
                     ESP_LOGI(TAG_I, "Withdraw complete");

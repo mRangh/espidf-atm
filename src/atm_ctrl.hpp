@@ -140,19 +140,17 @@ class ATM {
 
             break;
 
-            case DEPOSIT:
-                if(!coin_counter_in.read()){
-                    if (_last_read) {
-                        _count++;
-                        _last_read = true;
-                    }
-                } else {
-                    _last_read = false;
+            case DEPOSIT: {
+                bool current = coin_counter_in.read();
+                if (_last_read && !current) {
+                    _count++;
+                    printf("count ++, %d\n", _count);
                 }
+                _last_read = current;
 
-                if(_count == coin_num || ((esp_timer_get_time() / 1000) - _state_timer) >= 20000){
-                    ESP_LOGI(TAG_I, "Deposit complete");
-                    ESP_LOGI(TAG_I, "Coin count: %d", _count);
+                if (_count == coin_num || ((esp_timer_get_time() / 1000) - _state_timer) >= 20000) {
+                    ESP_LOGI(TAG_I, "Deposit complete\n");
+                    ESP_LOGI(TAG_I, "Coin count: %d\n", _count);
                     printf("DONE DEPOSIT %d\n", (int)_count);
                     coin_num = 0;
                     _count = 0;
@@ -161,6 +159,7 @@ class ATM {
                     do_default();
                     _state_timer = esp_timer_get_time() / 1000;
                 }
+            }
             break;
 
             case WITHDRAW: {
@@ -176,19 +175,15 @@ class ATM {
                     _servo_timer = current_time;
                 }
 
-                _current_read = coin_counter_out.read();
-
-                if(!coin_counter_out.read()){
-                    if (_last_read) {
-                        _count++;
-                        _last_read = true;
-                    }
-                } else {
-                    _last_read = false;
+                bool current = coin_counter_out.read();
+                if (_last_read && !current) {
+                    _count++;
+                    printf("count ++, %d\n", _count);
                 }
+                _last_read = current;
 
                 if (_count == coin_num || (current_time - _state_timer) >= 20000) {
-                    ESP_LOGI(TAG_I, "Withdraw complete");
+                    ESP_LOGI(TAG_I, "Withdraw complete\n");
                     printf("DONE WITHDRAW %d\n", (int)_count);
 
                     coin_num = 0;
@@ -200,7 +195,6 @@ class ATM {
                     do_default();
                     _state_timer = esp_timer_get_time() / 1000;
                 }
-
             }
             break;
         }

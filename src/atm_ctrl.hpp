@@ -166,10 +166,10 @@ class ATM {
                 int64_t current_time = esp_timer_get_time() / 1000;
                 if (current_time - _servo_timer >= 1000) {
                     if (!_servo_open) {
-                        servo_coin.move(60);
+                        servo_coin.move(0);
                         _servo_open = true;
                     } else {
-                        servo_coin.move(0);
+                        servo_coin.move(60);
                         _servo_open = false;
                     }
                     _servo_timer = current_time;

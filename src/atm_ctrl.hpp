@@ -27,6 +27,7 @@ static const char *TAG_D = "SYSTEM_DEBUG";
 
 struct atm_config {
     LM393& coin_counter_in;
+    LM393& coin_counter_out;
     Servo& servo_coin;
 };
 
@@ -35,11 +36,15 @@ class ATM {
     private:
 
     LM393& coin_counter_in;
+    LM393& coin_counter_out;
     Servo& servo_coin;
 
     std::string user_id = "";
     uint8_t _count = 0;
-    bool last_read = false;
+    bool _last_read = false;
+    bool _current_read = false;
+    int64_t _servo_timer = 0;
+    bool _servo_open = false;
 
     enum States {
         WAITING,
@@ -57,7 +62,7 @@ class ATM {
     ATM(const atm_config& c)
     : /*servo_in(c.servo_in),*/
       coin_counter_in(c.coin_counter_in), servo_coin(c.servo_coin),
-      _current_state(WAITING) {
+      coin_counter_out(c.coin_counter_out), _current_state(WAITING) {
 
         //servo_in.move(0);
         servo_coin.move(0);
@@ -66,6 +71,8 @@ class ATM {
 
     void begin(int core_id) {
         servo_coin.init();
+        coin_counter_in.init();
+        coin_counter_out.init();
         xTaskCreatePinnedToCore(
             ATM::task_handler,
             "atm_task",
@@ -119,23 +126,27 @@ class ATM {
                 if (withdraw) {
                     _current_state = WITHDRAW;
                     _state_timer = esp_timer_get_time() / 1000;
+                    _servo_timer = esp_timer_get_time() / 1000;
+                    _servo_open = false;
+                    _last_read = coin_counter_out.read();
+                    _count = 0;
                 } else if (deposit) {
                     _current_state = DEPOSIT;
                     //servo_in.move(90);
                     _state_timer = esp_timer_get_time() / 1000;
+                    _last_read = coin_counter_in.read();
+                    _count = 0;
                 }
 
             break;
 
             case DEPOSIT:
-                if(!coin_counter_in.read()){
-                    if (last_read) {
-                        _count++;
-                        last_read = true;
-                    }
-                } else {
-                    last_read = false;
+                _current_read = coin_counter_in.read();
+
+                if (!_current_read && _last_read) {
+                    _count++;
                 }
+                _last_read = _current_read;
 
                 if(_count == coin_num || ((esp_timer_get_time() / 1000) - _state_timer) >= 20000){
                     ESP_LOGI(TAG_I, "Deposit complete");
@@ -150,20 +161,41 @@ class ATM {
                 }
             break;
 
-            case WITHDRAW:
-                for(int i = 0; i < coin_num; i++){
-                    servo_coin.move(60);
-                    vTaskDelay(pdMS_TO_TICKS(1000));
-                    servo_coin.move(0);
-                    vTaskDelay(pdMS_TO_TICKS(1000));
+            case WITHDRAW: {
+                int64_t current_time = esp_timer_get_time() / 1000;
+                if (current_time - _servo_timer >= 1000) {
+                    if (!_servo_open) {
+                        servo_coin.move(60);
+                        _servo_open = true;
+                    } else {
+                        servo_coin.move(0);
+                        _servo_open = false;
+                    }
+                    _servo_timer = current_time;
                 }
-                ESP_LOGI(TAG_I, "Withdraw complete");
-                printf("DONE WITHDRAW %d\n", (int)coin_num.load());
-                coin_num = 0;
-                _count = 0;
-                _current_state = WAITING;
-                do_default();
-                _state_timer = esp_timer_get_time() / 1000;
+
+                _current_read = coin_counter_out.read();
+
+                if (!_current_read && _last_read) {
+                    _count++;
+                }
+                _last_read = _current_read;
+
+                if (_count == coin_num || (current_time - _state_timer) >= 20000) {
+                    ESP_LOGI(TAG_I, "Withdraw complete");
+                    printf("DONE WITHDRAW %d\n", (int)_count);
+
+                    coin_num = 0;
+                    _count = 0;
+                    servo_coin.move(0);
+                    _servo_open = false;
+
+                    _current_state = WAITING;
+                    do_default();
+                    _state_timer = esp_timer_get_time() / 1000;
+                }
+
+            }
             break;
         }
     }

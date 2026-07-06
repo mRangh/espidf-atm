@@ -61,8 +61,8 @@ class ATM {
 
     ATM(const atm_config& c)
     : /*servo_in(c.servo_in),*/
-      coin_counter_in(c.coin_counter_in), servo_coin(c.servo_coin),
-      coin_counter_out(c.coin_counter_out), _current_state(WAITING) {
+      coin_counter_in(c.coin_counter_in), coin_counter_out(c.coin_counter_out),
+      servo_coin(c.servo_coin), _current_state(WAITING) {
 
         //servo_in.move(0);
         servo_coin.move(0);

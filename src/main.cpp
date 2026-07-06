@@ -20,12 +20,14 @@
 
 Servo servo{4};
 
-LM393 coin_counter{13};
+LM393 coin_counter_in{13};
+LM393 coin_counter_out{14};
 
 atm_config atm_conf {
-    //.servo_in     = nullptr,
-    .coin_counter_in = coin_counter,
-    .servo_coin   = servo,
+    //.servo_in       = nullptr,
+    .coin_counter_in  = coin_counter_in,
+    .coin_counter_out = coin_counter_out,
+    .servo_coin       = servo,
 };
 
 ATM atm{atm_conf};
